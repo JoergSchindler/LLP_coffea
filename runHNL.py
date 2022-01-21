@@ -26,7 +26,7 @@ def runLPC(outf="test.pickle",fileset="test.json"):
     from distributed import Client
     from lpcjobqueue import LPCCondorCluster
     tic = time.time()
-    cluster = LPCCondorCluster()
+    cluster = LPCCondorCluster(memory="4GB")
     # minimum > 0: https://github.com/CoffeaTeam/coffea/issues/465
     cluster.adapt(minimum=4, maximum=10)
     client = Client(cluster)
@@ -35,7 +35,7 @@ def runLPC(outf="test.pickle",fileset="test.json"):
         "client": client,
         "savemetrics": True,
         "schema": None,
-        "align_clusters": True,
+        "align_clusters": True, 
     }
 
     client.upload_file("HNLprocessor.zip")
@@ -53,6 +53,7 @@ def runLPC(outf="test.pickle",fileset="test.json"):
         executor_args=exe_args,
         # remove this to run on the whole fileset:
         #maxchunks=10,
+        chunksize=10
     )
 
 

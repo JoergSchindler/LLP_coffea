@@ -62,12 +62,13 @@ class MyProcessor(processor.ProcessorABC):
                 hist.Bin("ClusterSize", r"$N_{rechits}$", 100, 0, 1000),
                 hist.Bin("dphi_mu", r'$\Delta\phi$(cluster,mu)', 30, 0, np.pi),
                 hist.Bin("dphi_MET", r'$\Delta\phi$(cluster,MET)', 30, 0, np.pi),
+                hist.Bin("dr_cluster_mu", "dr_cluster_mu", 30, 0, 5),
             ),
             "ClusterID": hist.Hist("Events",hist.Cat("dataset", "Dataset"),
                 hist.Cat("region", "region"),
                 hist.Bin("NStation", "NStation", 5, 0, 5),
                 hist.Bin("AvgStation", "AvgStation", 30, 0,5),
-                hist.Bin("ClusterEta", "ClusterEta", 30, 0, 2.5),
+                hist.Bin("ClusterEta", "ClusterEta", 30, 0, 2.5), 
              ),
 
 
@@ -246,7 +247,7 @@ class MyProcessor(processor.ProcessorABC):
         ## All possible pairs 
         #cls_lep_pair = ak.cartesian({"cls":cluster_dir,'lep':lep},axis=1,nested=True)
         #dphi_lep_cls = cls_lep_pair.cls.delta_phi(cls_lep_pair.lep)       
-         
+      
  
         muVeto=ak.zip({
             'e':events.cscRechitCluster3MuonVetoE,
@@ -373,7 +374,7 @@ class MyProcessor(processor.ProcessorABC):
                 allcuts = (allcuts) & (s["cut"])
                 selection.add(s["name"],ak.num(cluster[allcuts],axis=1)>0)
 
-        selection.add('n_cls',ak.num(cluster,axis=1)>0)
+        selection.add('n_cls',ak.num(cluster,axis=1)==1)
         selection.add('nJet',events.nJets>0)
 
         cls_OOT = cluster[
@@ -407,26 +408,46 @@ class MyProcessor(processor.ProcessorABC):
             & (ME11_12_veto)
             & ((MB1seg_veto) & (RB1_veto))
         ]   
+        cls_JetMuVeto_without_dr = cluster[
+            ((jetVeto_mask) &(muonVeto_mask))
+        ]
+
+
+        dr_mu_0p4         = (cluster.dr_cluster_mu>0.4)
+
+        cls_JetMuVeto_with_dr_0p4 = cluster[
+            ((jetVeto_mask) &(muonVeto_mask)&(dr_mu_0p4))
+        ]
+
+
+
+
 
         selection.add('cls_OOT',ak.num(cls_OOT,axis=1)>0)
         selection.add('cls_StatVeto',ak.num(cls_StaVeto,axis=1)>0)
         selection.add('cls_JetMuVeto',ak.num(cls_JetMuVeto,axis=1)>0)
         selection.add('cls_JetMuStaVeto',ak.num(cls_JetMuStaVeto,axis=1)>0)
         selection.add('cls_ABCD',ak.num(cls_ABCD,axis=1)>0) 
+        selection.add('cls_JetMuVeto_with_dr_0p4',ak.num(cls_JetMuVeto_with_dr_0p4,axis=1)>0)
+      
+     
 
         if isMuonChannel:
             preselections_mu = ['trigger_mu','MET',"METfilters",'good_mu']
             regions = {
                 "mu_PreSel"        :preselections_mu,
-                "mu_ABCD"          :preselections_mu+["cls_ABCD"],
-                "mu_ABCD_OOT"      :preselections_mu+["cls_OOT"],
-                "mu_1cls"          :preselections_mu+["n_cls"],
-                "mu_JetMuVeto"     :preselections_mu+["cls_JetMuVeto"],
-                "mu_JetMuStaVeto"  :preselections_mu+["cls_JetMuStaVeto"],
-                "mu_StatVeto"      :preselections_mu+["cls_StatVeto"],
-                "mu_ABCD_nminus1"  :['trigger_mu','good_mu','MET',"METfilters",'n_cls']+[c['name']+"_nminus1" for c in cutflow3_mu],
+                "mu_ABCD"          :preselections_mu+["cls_ABCD"]+["n_cls"],
+                "mu_ABCD_OOT"      :preselections_mu+["cls_OOT"]+["n_cls"],
+               # "mu_1cls"          :preselections_mu+["n_cls"],
+               # "mu_JetMuVeto"     :preselections_mu+["cls_JetMuVeto"]+["n_cls"],
+               # "mu_JetMuStaVeto"  :preselections_mu+["cls_JetMuStaVeto"]+["n_cls"],
+               # "mu_StatVeto"      :preselections_mu+["cls_StatVeto"]+["n_cls"],
+               # "mu_ABCD_nminus1"  :['trigger_mu','good_mu','MET',"METfilters",'n_cls']+[c['name']+"_nminus1" for c in cutflow3_mu],
+       
+                "mu_JetMuVeto_dr_0p4": preselections_mu+["cls_JetMuVeto_with_dr_0p4"]+["n_cls"],
+        
 
-       } 
+        } 
 
         elif isElectronChannel:
             preselections_ele = ['trigger_ele','MET',"METfilters",'good_electron']
@@ -482,11 +503,13 @@ class MyProcessor(processor.ProcessorABC):
             output['gLLP_pt'].fill(dataset=dataset,gLLP_pt = ak.firsts(llp[cut].pt), weight=weights.weight()[cut])
             output['gLLP_eta'].fill(dataset=dataset,gLLP_eta = ak.firsts(llp[cut].eta), weight=weights.weight()[cut])
             output['glepdPhi'].fill(dataset=dataset,gLLP_lepdPhi = np.abs(ak.flatten(events[cut].gLLP_lepdPhi)), weight=weights.weight()[cut])
-
+        """ 
         # Fill n-1 plots
         if isMuonChannel:
+            print(cluster)
             preselections_mu = ['trigger_mu','MET',"METfilters",'good_mu']
             cut = selection.all(*set([]))
+            print(ak.num(cluster[cut],axis=1))
             nMinus1cuts = [c['name']+"_nminus1" for c in cutflow3_mu] 
             output["nCluster_n-1"].fill(dataset=dataset,nCluster=ak.num(cluster[cut],axis=1),Nminus1=0,weight=weights.weight()[cut])
             cut = selection.all(*preselections_mu)
@@ -512,7 +535,7 @@ class MyProcessor(processor.ProcessorABC):
                 output["nCluster_n-1"].fill(dataset=dataset,nCluster=ak.num(cluster[cut],axis=1),Nminus1=i+2,weight=weights.weight()[cut])
             cut = selection.all(*regions["ele_ABCD_nminus1"])
             output["nCluster_n-1"].fill(dataset=dataset,nCluster=ak.num(cluster[cut],axis=1),Nminus1=len(nMinus1cuts)+2,weight=weights.weight()[cut])
-
+        """
 
         
         if isMuonChannel:
@@ -525,7 +548,7 @@ class MyProcessor(processor.ProcessorABC):
                 "ele_ABCD_cf2"       :['trigger_ele','good_electron','MET',"METfilters",'n_cls']+[c['name'] for c in cutflow2_ele],            
                 "ele_ABCD_cf3"       :['trigger_ele','good_electron','MET',"METfilters",'n_cls']+[c['name'] for c in cutflow3_ele],             
         }
-
+        """ 
         for region,cuts in cf_regions.items():
             ## Fill cut flow plots 
             allcuts = set([])
@@ -544,7 +567,7 @@ class MyProcessor(processor.ProcessorABC):
                                     nCluster=ak.num(cluster[cut],axis=1),
                                     cutFlow=i+1,
                                     weight=weights.weight()[cut])            
-
+        """
         ## Fill regions plot
         for region,cuts in regions.items():
 
@@ -558,11 +581,12 @@ class MyProcessor(processor.ProcessorABC):
                                             ClusterSize=ak.flatten(cluster[cut].size),
                                             dphi_mu =np.abs(ak.flatten(cluster[cut].dphi_cluster_mu)),
                                             dphi_MET=np.abs(ak.flatten(cluster[cut].dphi_cluster_MET)),
+                                            dr_cluster_mu=np.abs(ak.flatten(cluster[cut].dr_cluster_mu)),
                                             weight=ak.flatten(w_cls))
             output["ClusterID"].fill(dataset=dataset,region=region,
                                             NStation=ak.flatten(cluster[cut].NStation10),
                                             AvgStation =np.abs(ak.flatten(cluster[cut].AvgStation10)),
-                                            ClusterEta=np.abs(ak.flatten(cluster[cut].eta)),
+                                            ClusterEta=np.abs(ak.flatten(cluster[cut].eta)), 
                                             weight=ak.flatten(w_cls))
 
 

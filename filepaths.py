@@ -71,6 +71,14 @@ data_muon = {
 
 }
 
+selection = {
+" HNL_muonType_mHNL2p0_pl10"     :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim/HNL_muonType_mHNL2p0_pl10/HeavyNeutralLepton_Tree_*.root"),
+     " HNL_muonType_mHNL2p0_pl100"    :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim/HNL_muonType_mHNL2p0_pl100/HeavyNeutralLepton_Tree_*.root"),
+     " HNL_muonType_mHNL2p0_pl1000"   :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim/HNL_muonType_mHNL2p0_pl1000/HeavyNeutralLepton_Tree_*.root"),
+ 'WJetsToLNu':glob.glob("/eos/uscms/store/user/kkwok/llp/WJetsToLNu/HeavyNeutralLepton_Tree_*.root"),
+'Muon_2018D': glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim/SingleMuon_2018D/HeavyNeutralLepton_Tree_*.root"),
+}
+
 #outf = open(os.path.expandvars("./samplefiles.json"),"w")
 #outf = open(os.path.expandvars("./signals.json"),"w")
 
@@ -81,8 +89,8 @@ def writejson(fileset,fout):
         print("working on ",sample)
         newpaths = []
         for f in filelist:
-            newpaths.append(f.replace("/eos/uscms/",'root://xcache//')) ## coffea-casa
-            #newpaths.append(f.replace("/eos/uscms/",'root://cmsxrootd.fnal.gov//'))
+            #newpaths.append(f.replace("/eos/uscms/",'root://xcache//')) ## coffea-casa
+            newpaths.append(f.replace("/eos/uscms/",'root://cmsxrootd.fnal.gov//'))
         finaljson[sample] = newpaths
     outf.write((json.dumps(finaljson,indent=4)))
     print("Json written to :", fout)
@@ -101,5 +109,5 @@ def replaceFilepath(inputjson):
 
 #writejson(signals_muon,"signals.json")
 #writejson(data_muon,"data_muon_casa.json")
-#writejson(signals,"all_samples.json")
-replacejson("signals.json")
+writejson(selection,"Muon_MC_BKG_Data.json")
+#replacejson("signals.json")
