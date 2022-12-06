@@ -1,0 +1,19 @@
+# Dataset                                   electron channel   muon channel
+HNL_tauType_leptonFilter_mHNL1p0_pl10               1          1
+HNL_tauType_leptonFilter_mHNL1p0_pl100              0.6840     0.6589  
+HNL_tauType_leptonFilter_mHNL1p0_pl1000             0.6809     0.7173
+HNL_tauType_leptonFilter_mHNL1p0_pl10000            1          1
+HNL_tauType_leptonFilter_mHNL2p0_pl10               1          1
+HNL_tauType_leptonFilter_mHNL2p0_pl100              0.6481     0.6875
+HNL_tauType_leptonFilter_mHNL2p0_pl1000             0.6214     0.6268
+HNL_tauType_leptonFilter_mHNL2p0_pl10000            1          1
+HNL_tauType_leptonFilter_mHNL4p0_pl10               1          1
+HNL_tauType_leptonFilter_mHNL4p0_pl100              0.7526     0.7505
+HNL_tauType_leptonFilter_mHNL4p0_pl1000             1          1
+HNL_tauType_leptonFilter_mHNL4p0_pl10000            1          1
+HNL_tauType_leptonFilter_mHNL7p0_pl100              1          1
+HNL_tauType_leptonFilter_mHNL7p0_pl1000             1          1
+HNL_tauType_leptonFilter_mHNL7p0_pl10000            1          1
+HNL_tauType_leptonFilter_mHNL10p0_pl100             1          1
+HNL_tauType_leptonFilter_mHNL10p0_pl1000            1          1
+HNL_tauType_leptonFilter_mHNL10p0_pl10000           1          1
