@@ -131,4 +131,28 @@ lepsf_keys = lepsf_evaluator.keys()
 corrections['elesf_evaluator'] = lepsf_evaluator
 corrections['elesf_keys'] = lepsf_keys
 
+
+
+def read_tau_filter_eff(filename):
+    out = {}
+    with open(filename) as fin:
+        for line in fin:
+            line = line.strip()
+            if len(line) == 0 or line[0] == '#':
+                continue
+            dataset, ele_eff,muon_eff, *_ = line.split()
+            try:
+                ele = float(numexpr.evaluate(ele_eff))
+                muon = float(numexpr.evaluate(muon_eff))
+            except:
+                print("numexpr evaluation failed for line: %s" % line)
+                raise
+            if ele <= 0 or muon <=0:
+                warnings.warn("Eff is <= 0 in line: %s" % line, RuntimeWarning) 
+            out[dataset+"_ele_channel"] = ele
+            out[dataset+"_muon_channel"] = muon
+    return out
+
+corrections['tau_eff'] = read_tau_filter_eff("metadata/tau_filter_eff.dat")
 save(corrections, 'corrections.coffea')
+
