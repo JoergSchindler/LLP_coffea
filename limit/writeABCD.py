@@ -35,9 +35,8 @@ def writeBinProcSection(text_file,signal_rate,bkg_proc):
     text_file.write(procNameLine+"\n") 
     text_file.write(procNumLine+"\n") 
     text_file.write(rateNumLine+"\n") 
-    text_file.write('------------------------------ \n')
 
-def writeUncSection(text_file,signal_rate,bkg_proc,lnN_unc):
+def writeUncSection(text_file,signal_rate,bkg_proc,bkg_unc,sig_unc):
     ### unc = {"proc_uncX":[a,b,c,d]}
 
     ## match num. of proc
@@ -45,7 +44,8 @@ def writeUncSection(text_file,signal_rate,bkg_proc,lnN_unc):
     procs.update(signal_rate)
     procs.update(bkg_proc)
 
-    for unc_name,unc_arr in lnN_unc.items():
+    ## bkg uncertainties
+    for unc_name,unc_arr in bkg_unc.items():
         unc_text = unc_name+' \t lnN'
         if not np.any([k in unc_name for k in procs.keys()]): continue                  #skip unc that does not match any proc
         #match with all proc.
@@ -63,6 +63,28 @@ def writeUncSection(text_file,signal_rate,bkg_proc,lnN_unc):
                     else:
                         unc_text += '\t - '                      #not this proc
         text_file.write(unc_text + ' \n')                        # write the line
+    ## signal uncertainties
+    for unc_name,unc_dict in sig_unc.items():
+        unc_text = unc_name+' \t lnN'
+        for unc_proc,unc_arr in unc_dict.items():                                           ##  unc_dict = {"HNL":[0.016,0.016, 0.016 ,0.016]}
+            #print(unc_proc,unc_arr)
+            for i,Bin in enumerate(["chA","chB","chC","chD"]):
+                for j,(procName,rates) in enumerate(procs.items()):                          ## match proc name with unc_proc
+                    i_rate = rates[i]                                                    #rate of proc j in bin i
+                    if procName == unc_proc: 
+                        if i_rate>=0:                                                         
+                            if unc_arr[i] ==0:
+                                unc_text += '\t - '                                         #use - for 0 unc.
+                            elif type(unc_arr[i])==type("") and len(unc_arr[i].split("/"))>1:
+                                unc_text += ' \t '+unc_arr[i]                               #use string for asym unc
+                            else:
+                                unc_text += ' \t '+str(unc_arr[i]+1)                        #simple lnN
+                    else:
+                        if i_rate>0:                                                     #skip ABC channels other bkg Zmumu_CSC
+                            unc_text += '\t - '                                             #skip bkg proc
+        text_file.write(unc_text + ' \n')                        # write the line
+    return
+
 
 
 def make_datacard_2sig(outDataCardsDir,modelName,  signal_rate, norm, bkg_rate, observation, bkg_unc,  sig_unc):
@@ -91,6 +113,9 @@ def make_datacard_2sig(outDataCardsDir,modelName,  signal_rate, norm, bkg_rate, 
     text_file.write('observation \t {0:6.2f} \t {1:6.2f} \t {2:6.2f} \t {3:6.2f} \n'.format(observation[0],observation[1],observation[2],observation[3]))
     text_file.write('------------------------------ \n')
     writeBinProcSection(text_file,signal_rate,bkg_rate)
+    text_file.write('------------------------------ \n')
+    #### uncertainties ####
+    writeUncSection(text_file,signal_rate,bkg_rate,bkg_unc,sig_unc)
     text_file.write('NA_val      extArg         {0}   [{0},{0}] \n'.format(a))
     text_file.write('NB_val      extArg         {0}   [{0},{0}] \n'.format(b))
     text_file.write('NC_val      extArg         {0}   [{0},{0}] \n'.format(c))
@@ -101,9 +126,7 @@ def make_datacard_2sig(outDataCardsDir,modelName,  signal_rate, norm, bkg_rate, 
     text_file.write('NB  rateParam       chB     bkg      (@0*(1+1/sqrt(@0))**@1)       NB_val,NB_x \n')
     text_file.write('NC  rateParam       chC     bkg      (@0*(1+1/sqrt(@0))**@1)       NC_val,NC_x \n')
     text_file.write('ND  rateParam       chD     bkg      (@0*@2/@1)                     NA,NB,NC ## D=A*C/B\n')
-    text_file.write('norm  rateParam       *     ggH      1 \n')
-    #### uncertainties ####
-    writeUncSection(text_file,signal_rate,bkg_rate,bkg_unc)
+    text_file.write('norm  rateParam       *     HNL      1 \n')
 
 
 def calABCD(listABCD,eff_nhit,eff_dphi):
@@ -243,6 +266,15 @@ def predIntimeFromOOT(h,size,dphi_lep,dphi_met,isSignal=False,kfactor=0.25,lumi=
  
     return N_evts, N_evts_unc
 
+## hard-coded scale for muon channel
+def scale2017(h1,h2):
+    ##2016+2018 = 51.2+30.9  =82.1## mu
+    h1.scale(82.1)
+    ##2017 = 37.9 ## mu
+    h2.scale(37.9)
+    h1.add(h2)      ## this is done in-place
+    return 
+
 def writeYields(cut = None,muon=True,outf="yields.json",debug=True,shifts=None):
     from coffea import hist
     if cut==None:
@@ -254,15 +286,23 @@ def writeYields(cut = None,muon=True,outf="yields.json",debug=True,shifts=None):
             cut = {"CSC":(160,dphi_lepcuts[-2],0.7) , "DT":(100,dphi_lepcuts[-10],0.7)}
 
     if muon:
-        bkg     = loadbkg("../HNL_histograms_Feb23_muons_data.pickle",True,cut,debug)
-        signals = loadhist("../HNL_histograms_Feb23_muons_signal.pickle",True,cut,debug)
-        signals.update( loadhist("../HNL_histograms_Mar1_muons_signal.pickle",True,cut,debug))
-        #bkg     = loadbkg("../HNL_histograms_Nov17_muons_all.pickle",True,cut,debug)
+        lumi = 120
+        #bkg     = loadbkg("../HNL_histograms_Feb23_muons_data.pickle",True,cut,debug)
+        #signals = loadhist("../HNL_histograms_Feb23_muons_signal.pickle",True,cut,debug)
+        #signals.update( loadhist("../HNL_histograms_Mar1_muons_signal.pickle",True,cut,debug))
+        #bkg     = loadbkg("../HNL_histograms_Nov29_muons_all.pickle",True,cut,debug)
+        bkg      = loadbkg("../HNL_histograms_Dec6_muons_data.pickle",True,cut,debug)
+        signals  = loadhist("../HNL_histograms_Dec6_muons_signals.pickle",True,cut,debug,lumi,
+                            "../HNL_histograms_Dec6_muons_signals_2017.pickle" )
+        #signals = loadSignalFromJson("./limitpoints_muon.json",True,cut,debug,lumi) ## this is too slow 
     else:
-        bkg     = loadbkg("../HNL_histograms_Feb3_electrons.pickle",False,cut,debug)
-        signals = loadhist("../HNL_histograms_Apr1_ele_signal.pickle",False,cut,debug)
-        #bkg     = loadbkg("../HNL_histograms_Nov17_ele_all.pickle",True,cut,debug)
-        #signals = loadhist("../HNL_histograms_Nov17_ele_all.pickle",True,cut,debug)
+        lumi = 122
+        #bkg     = loadbkg("../HNL_histograms_Feb3_electrons.pickle",False,cut,debug)
+        #signals = loadhist("../HNL_histograms_Apr1_ele_signal.pickle",False,cut,debug)
+        #bkg     = loadbkg("../HNL_histograms_Nov29_ele_all.pickle",False,cut,debug)
+        bkg     = loadbkg("../HNL_histograms_Dec6_ele_data.pickle",False,cut,debug)
+        signals = loadhist("../HNL_histograms_Dec6_ele_signals.pickle",False,cut,debug,lumi)
+        #signals = loadSignalFromJson("./limitpoints_ele.json",False,cut,debug,lumi)
 
     #data = {**bkg,**signals} 
     data = {}
@@ -285,11 +325,17 @@ def loadbkg(fin='../HNL_histograms_Feb3_electrons.pickle',muon=False,cut=None,de
     with open(fin,'rb')  as f:
         out = pickle.load(f)
     if muon:
-        datasets = ['Muon_2018A','Muon_2018B','Muon_2018C','Muon_2018D'] 
-        lumi = 137./51
+        datasets = [
+                'Muon_2016B','Muon_2016C','Muon_2016D','Muon_2016E','Muon_2016F','Muon_2016G',"Muon_2016H",
+                'Muon_2017B','Muon_2017C','Muon_2017D','Muon_2017E','Muon_2017F',
+                'Muon_2018A','Muon_2018B','Muon_2018C','Muon_2018D'] 
+        lumiScale = 1 
     else:
-        datasets = ["EGamma_2018A","EGamma_2018B","EGamma_2018C","EGamma_2018D"]
-        lumi = 137./39
+        datasets = [
+            'EGamma_2016B','EGamma_2016C','EGamma_2016D','EGamma_2016E','EGamma_2016F','EGamma_2016G','EGamma_2016H',    
+            'EGamma_2017B','EGamma_2017C','EGamma_2017D','EGamma_2017E','EGamma_2017F',
+            'EGamma_2018A','EGamma_2018B','EGamma_2018C','EGamma_2018D']
+        lumiScale = 1  
 
     h = out['dphi_cluster_csc'].integrate("dataset",datasets)
     OOT = h.integrate("region","ABCD_OOT")
@@ -305,17 +351,10 @@ def loadbkg(fin='../HNL_histograms_Feb3_electrons.pickle',muon=False,cut=None,de
             cut = {"CSC":(160,dphi_lepCuts[-2],0.7), "DT":(100,1.989,0.7)}
         else:
             cut = {"CSC":(160,dphi_lepCuts[-2],0.7), "DT":(100,dphi_lepCuts[-10],0.7)}
-    #    dphi_lepCuts = np.linspace(0,np.pi,31)[1:-2]
-    #    sizeCut = 160
-    #    dphi_lepCut = dphi_lepCuts[-2] ### 2.827
-    #    dphi_METCut = 0.7
     kfactor=0.25
-    CSC,CSC_unc = predIntimeFromOOT(OOT,cut['CSC'][0],cut["CSC"][1],cut['CSC'][2],False,kfactor,lumi)
-    #sizeCut = 100
-    #dphi_lepCut = dphi_lepCuts[-10] ###. 1.989675
-    #dphi_METCut = 0.7
+    CSC,CSC_unc = predIntimeFromOOT(OOT,cut['CSC'][0],cut["CSC"][1],cut['CSC'][2],False,kfactor,lumiScale)
     kfactor=0.9
-    DT,DT_unc = predIntimeFromOOT(OOT_dt,cut["DT"][0],cut["DT"][1],cut["DT"][2],False,kfactor,lumi)
+    DT,DT_unc = predIntimeFromOOT(OOT_dt,cut["DT"][0],cut["DT"][1],cut["DT"][2],False,kfactor,lumiScale)
 
     if debug:
         print("bkg CSC = " ,CSC)
@@ -326,22 +365,90 @@ def loadbkg(fin='../HNL_histograms_Feb3_electrons.pickle',muon=False,cut=None,de
     data["bkg"] = {"CSC":CSC,"DT":DT,"CSC_unc":CSC_unc,"DT_unc":DT_unc,"norm":1}
     return data 
 
-
-def loadhist(fin='../HNL_histograms_Feb23_muons_signal.pickle',muon=True,cut=None,debug=True):
+def scaleHist(out,signal_name,lumi,cut,debug):
     from coffea import hist
-    
-    #with open('../HNL_histograms_Feb18_muons_signal.pickle','rb') as f:                
-    #with open('../HNL_histograms_Feb23_muons_signal.pickle','rb') as f:                
-    #with open('../HNL_histograms_Mar1_muons_signal.pickle','rb') as f:               
-    with open(fin,'rb')  as f:
-        out = pickle.load(f)
-   
-    lumi = 137.0
     
     for k,h in out.items():
         if (type(h)!=hist.Hist): continue
-        #print("scaling ",k)
         h.scale({ d: lumi for d in h.identifiers("dataset")} , axis="dataset") 
+
+    h = out['dphi_cluster_csc']
+    signal = h.integrate("dataset",signal_name).integrate("region","ABCD")
+    hdt = out['dphi_cluster_dt']
+    signal_dt = hdt.integrate("dataset",signal_name).integrate("region","ABCD_dt")
+
+    ## not used for signal
+    kfactor=1
+    lumi=1
+    CSC,CSC_unc = predIntimeFromOOT(signal,cut["CSC"][0],cut["CSC"][1],cut["CSC"][2],True,kfactor,lumi)
+    DT,DT_unc   = predIntimeFromOOT(signal_dt,cut["DT"][0],cut["DT"][1],cut["DT"][2],True,kfactor,lumi)
+    if "rwctau" in signal_name:
+        ct = signal_name.split("_")[-1].replace("rwctau","pl")
+        sample_name = ("_".join(signal_name.split("_")[:-2]+[ct]))
+    else:
+        sample_name = signal_name 
+    if debug:
+        print(signal_name," CSC = " ,CSC)
+        print(signal_name," CSCunc = " ,CSC_unc)
+        print(signal_name," DT = " ,DT)
+        print(signal_name," DTunc = ", DT_unc)
+    return {"CSC":CSC,"DT":DT,"CSC_unc":CSC_unc,"DT_unc":DT_unc,"norm":1}
+ 
+
+### load signals from json
+def loadSignalFromJson(fin='../signals_Nov18_ele.json',muon=True,cut=None,debug=True,lumi=137):
+    from coffea.nanoevents import NanoEventsFactory, NanoAODSchema,BaseSchema
+    from HNLprocessor.HNLproc_4 import MyProcessor
+
+    import time
+    proc    = MyProcessor(not(muon))
+    with open(fin,'r') as f:
+        signals = json.load(f)
+
+    data = {} 
+
+    for dataset,fpath in signals.items():
+        start = time.perf_counter()
+        if len(fpath)>1:
+            print("Skipping %s, because it has more than 1 file"%dataset)
+        else:
+            if debug:
+                print("dataset = ", dataset)
+                print("     Loading events  ...")
+                tic = time.perf_counter()
+            events = NanoEventsFactory.from_root(fpath[0], schemaclass=BaseSchema,treepath='MuonSystem', metadata={"dataset":dataset }).events()
+            if debug: print("     Processing events  ...")
+            out = proc.process(events)
+            out = proc.postprocess(out)
+            if debug:
+                toc = time.perf_counter()
+                #print(f"     processing time =   {toc - tic:0.4f} seconds")
+            del(events)
+            data[dataset] = scaleHist(out,dataset,lumi,cut,debug) 
+    stop = time.perf_counter()
+    #if debug: print(f"     total processing time =   {stop - start:0.4f} seconds")
+    return data
+
+    
+def loadhist(fin='../HNL_histograms_Feb23_muons_signal.pickle',muon=True,cut=None,debug=True,lumi=137,fin2017=None):
+    from coffea import hist
+    
+    with open(fin,'rb')  as f:
+        out = pickle.load(f)
+   
+    
+    if fin2017 is not None:
+        with open(fin2017,'rb')  as f:
+            out_2017 = pickle.load(f)
+        for k,h in out.items():
+            if (type(h)!=hist.Hist): continue
+            h_2017 = out_2017[k]    # find the same histogram in 2017 output
+            scale2017(h,h_2017)
+    else:
+        for k,h in out.items():
+            if (type(h)!=hist.Hist): continue
+            #print("scaling ",k)
+            h.scale({ d: lumi for d in h.identifiers("dataset")} , axis="dataset") 
 
     signalNames = [ s.name for s in out['dphi_cluster_csc'].identifiers("dataset")]   
     data = {} 
@@ -357,26 +464,9 @@ def loadhist(fin='../HNL_histograms_Feb23_muons_signal.pickle',muon=True,cut=Non
         kfactor=1     ## Muon, CSC InT/OOT 
 
         ## CSC cuts
-        #if muon:
-        #    #print("Applying muon cuts in CSC")
-        #    sizeCut = 220
-        #    dphi_lepCut = dphi_lepCuts[-10] ###.1.989675
-        #    dphi_METCut = 0.7
-        #else:
-        #    sizeCut = 160
-        #    dphi_lepCut = dphi_lepCuts[-2] ### 2.827
-        #    dphi_METCut = 0.7
         CSC,CSC_unc = predIntimeFromOOT(signal,cut["CSC"][0],cut["CSC"][1],cut["CSC"][2],True,kfactor,lumi)
 
         ### DT cuts
-        #if muon:
-        #    sizeCut = 110
-        #    dphi_lepCut = dphi_lepCuts[-8] ###. 2.199115
-        #    dphi_METCut = 0.7
-        #else:
-        #    sizeCut = 100
-        #    dphi_lepCut = dphi_lepCuts[-10] ###. 1.989675
-        #    dphi_METCut = 0.7
         DT,DT_unc = predIntimeFromOOT(signal_dt,cut["DT"][0],cut["DT"][1],cut["DT"][2],True,kfactor,lumi)
         if "rwctau" in signal_name:
             ct = signal_name.split("_")[-1].replace("rwctau","pl")
@@ -396,45 +486,74 @@ def loadhist(fin='../HNL_histograms_Feb23_muons_signal.pickle',muon=True,cut=Non
 
 def makeAllcards(f_yield,outdir="./combine/HNL_datacards/",suffix="",test=False):
 
+    from collections import OrderedDict
     if not os.path.exists(outdir):
         print("mk dir = ", outdir)
         os.mkdir(outdir)
-    #outdir = "../combine/dt_datacards/"
-    #outdir = "./combine/HNL_datacards/"
     norm = 100.0    # 1% BR
     suffix = ""
 
-
     #ZmumuCR = CSC:73      DT:172  (200,130)
     #ZmumuCR = CSC:54      DT:130  (220,150)
-    
 
     bkg_proc_CSC= {
      #   "Zmumu_CSC":[-1,-1,-1,2.07], ## 2.5% TF 
         #"Zmumu_CSC":[-1,-1,-1,4.68], ## 5.6% TF 
-        "Zmumu_CSC":[-1,-1,-1,3.02], ## 5.6% TF, 220
+        "Zmumu_CSC":[-1,-1,-1,4.15], ## 5.69% TF, 200 cut
     }
     bkg_proc_DT= {
      #   "Zmumu_DT":[-1,-1,-1,1.95],    # 1.0% TF
         #"Zmumu_DT":[-1,-1,-1,2.56],     # 1.3% TF
-        "Zmumu_DT":[-1,-1,-1,1.69],     # 1.3% TF, 150
+        #"Zmumu_DT":[-1,-1,-1,1.69],     # 1.3% TF, 150
+        "Zmumu_DT":[-1,-1,-1,1.69],     # 1.7% TF, 130, loose ID
     }
-    # procName_uncName
+    # must use convention :     procName_uncName
     bkg_unc = {
-        "bkg_sys_D":[0  ,0 ,0 ,0.5],
+        #"bkg_sys_D":[0  ,0 ,0 ,0.5],
         #"Zmumu_CSC_sys_D":[0 ,0 ,0 ,0.32],      
         #"Zmumu_DT_sys_D" :[0 ,0 ,0 ,0.2 ],
-        "Zmumu_CSC_sys_D":[0 ,0 ,0 ,0.25],    
-        "Zmumu_DT_sys_D" :[0 ,0 ,0 ,0.23],
+        "Zmumu_CSC_sys_D":[0 ,0 ,0 ,0.29], ## 5.69% TF, 200 cut 
+        "Zmumu_DT_sys_D" :[0 ,0 ,0 ,0.24], # 1.7% TF, 130, loose ID
     }
-    sig_unc = {
-        "clus":{
-            "ggH":[0.15 ,0.15, 0.15 ,0.15],
-        },
-        "lumi":{
-            "ggH":[0.018 ,0.018, 0.018 ,0.018],
-        },
-    }
+    sig_unc_DT = OrderedDict({
+        "lumi"            :{       "HNL":[0.016,0.016, 0.016 ,0.016],    },
+        "pileup"          :{       "HNL":[0.01,0.01, 0.01 ,0.01],    },
+        "Wpt"             :{       "HNL":[0.10,0.10, 0.10 ,0.10],        },
+        "JES"             :{       "HNL":[0.02,0.02, 0.02 ,0.02],        },     ## TODO update
+        "dt_clusterSyst"  :{       "HNL":[0.15,0.15, 0.15 ,0.15],    },
+        "dt_rpcSyst"      :{       "HNL":[0.053,0.053, 0.053 ,0.053],    },
+        "dt_MB1Syst"      :{       "HNL":[0.074,0.074, 0.074 ,0.074],    },
+    })
+    sig_unc_CSC = OrderedDict({
+        "lumi"            :{       "HNL":[0.016,0.016, 0.016 ,0.016],    },
+        "pileup"          :{       "HNL":[0.01,0.01, 0.01 ,0.01],    },         ## TODO update
+        "Wpt"             :{       "HNL":[0.10,0.10, 0.10 ,0.10],        },     ## TODO update
+        "JES"             :{       "HNL":[0.02,0.02, 0.02 ,0.02],        },     ## TODO update
+        "csc_muonVeto"    :{       "HNL":[0.045 ,0.045, 0.045 ,0.045],        },
+        "csc_jetVeto"     :{       "HNL":[0.00068 ,0.00068 , 0.00068  ,0.00068 ],        },
+        "csc_rechitVeto"  :{       "HNL":[0.001 ,0.001 , 0.001  ,0.001 ],        },
+        "csc_cut_based_id":{       "HNL":[0.051 ,0.051 , 0.051  ,0.051 ],        },
+        "csc_time"        :{       "HNL":[0.009 ,0.009 , 0.009  ,0.009 ],        },
+        "csc_time_spread" :{       "HNL":[0.028 ,0.028 , 0.028  ,0.028 ],        },
+        "csc_clusterSyst" :{       "HNL":[0.035 ,0.035 , 0.035  ,0.035 ],        },
+        "csc_readout"     :{       "HNL":[0.01 ,0.01 , 0.01  ,0.01 ],        },
+    })
+    if options.muon:
+        mu_sys = { 
+            "muTrig": {"HNL":[0.01,0.01, 0.01 ,0.01]},
+            "muID"  : {"HNL":[0.003,0.003, 0.003 ,0.003]},
+            "muISO" : {"HNL":[0.006,0.006, 0.006 ,0.006]},
+        }
+        sig_unc_CSC.update( mu_sys)
+        sig_unc_DT.update( mu_sys)
+    else:
+        ele_sys = { 
+            "eleTrig": {"HNL":[0.01,0.01, 0.01 ,0.01]},
+            "eleReco" :{"HNL":[0.01,0.01, 0.01 ,0.01]},
+        }
+        sig_unc_CSC.update( ele_sys)
+        sig_unc_DT.update( ele_sys)
+
     with open(f_yield,'r') as f:
         data = json.load(f)
         bkg_rate_CSC = {}       # {bkg: [a,b,c,d]}
@@ -449,14 +568,14 @@ def makeAllcards(f_yield,outdir="./combine/HNL_datacards/",suffix="",test=False)
                 name = name+suffix
             #norm = 1
             norm = signal["norm"]
-            sigRate = {"ggH":np.array(signal["CSC"])/norm }
+            sigRate = {"HNL":np.array(signal["CSC"])/norm }
             obs = bkg_rate_CSC['bkg']
             obs[-1] = bkg_rate_CSC['bkg'][0]*bkg_rate_CSC['bkg'][2]/bkg_rate_CSC['bkg'][1]  ## force D=A*C/B
-            make_datacard_2sig(outdir,name+"_CSC", sigRate, norm, bkg_rate_CSC, obs, bkg_unc,  sig_unc)
-            sigRate = {"ggH":np.array(signal["DT"]) /norm}
+            make_datacard_2sig(outdir,name+"_CSC", sigRate, norm, bkg_rate_CSC, obs, bkg_unc,  sig_unc_CSC)
+            sigRate = {"HNL":np.array(signal["DT"]) /norm}
             obs = bkg_rate_DT['bkg']
             obs[-1] = bkg_rate_DT['bkg'][0]*bkg_rate_DT['bkg'][2]/bkg_rate_DT['bkg'][1]  ## force D=A*C/B
-            make_datacard_2sig(outdir,name+"_DT", sigRate, norm, bkg_rate_DT, obs, bkg_unc,  sig_unc)
+            make_datacard_2sig(outdir,name+"_DT", sigRate, norm, bkg_rate_DT, obs, bkg_unc,  sig_unc_DT)
    
             def Run(cmd,test=False):
                 print(cmd)
@@ -604,8 +723,8 @@ if __name__ == "__main__":
         #cut = {"CSC":(200,dphi_lepcuts[-2],None), "DT":(130,dphi_lepcuts[-2],None)}
         #########################################
         print("Working on electron Channel: ")
-        outdir = "./combine/HNL_datacards/ele_v8/"   ###  v8, full run 2  
-        cut = {"CSC":(220,2.8,None), "DT":(130,2.8,None)}
+        outdir = "./combine/HNL_datacards/ele_v8/"   ###  v8, full run 2, looseID, new timing, 1 muon pT cut
+        cut = {"CSC":(200,2.8,None), "DT":(130,2.8,None)}
         isMuon=False
 
         f_yield = outdir+"yields.json"
@@ -616,7 +735,7 @@ if __name__ == "__main__":
             {"m_src":4.0,"m_target":3.5},
         ]
         if not options.muon:
-            if options.writeYields: writeYields(cut,isMuon,f_yield,False,shifts) 
+            if options.writeYields: writeYields(cut,isMuon,f_yield,True,shifts) 
             else:   makeAllcards(f_yield,outdir,"",options.dryRun)
         #########################################
         #########################################
@@ -645,11 +764,11 @@ if __name__ == "__main__":
         #cut = {"CSC":(220,dphi_lepcuts[-2],None), "DT":(150,dphi_lepcuts[-2],None)}
         #########################################
         print("Working on muon Channel: ")
-        outdir = "./combine/HNL_datacards/muon_v11/"   ### v11 , full run 2 
-        cut = {"CSC":(220,2.8,None), "DT":(130,2.8,None)}
+        outdir = "./combine/HNL_datacards/muon_v11/"   ### v11 , full run 2, loosID, new timing 
+        cut = {"CSC":(200,2.8,None), "DT":(130,2.8,None)}
         isMuon=True
 
         f_yield = outdir+"yields.json"
         if options.muon:
-            if options.writeYields: writeYields(cut,isMuon,f_yield,False,shifts) 
+            if options.writeYields: writeYields(cut,isMuon,f_yield,True,shifts) 
             else:            makeAllcards(f_yield,outdir,"",options.dryRun)
