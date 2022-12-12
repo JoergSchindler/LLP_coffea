@@ -78,6 +78,20 @@ test = {
      "HNL_electronType_mHNL2p0_pl100"    :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim/HNL_electronType_mHNL2p0_pl100/HeavyNeutralLepton_Tree_1.root"),
 }
 
+signals_tau = {
+        "HNL_tauTypeleptonFilter_mHNL1p0_pl100" :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL1p0_pl100/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL1p0_pl1000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL1p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL1p0_pl1000_rwctau2000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL1p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL1p0_pl1000_rwctau5000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL1p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL2p0_pl100" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL2p0_pl100/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL2p0_pl1000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL2p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL4p0_pl100" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl100/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL4p0_pl1000" :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL4p0_pl1000_rwctau2000" :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL4p0_pl1000_rwctau5000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
+        }
+
+
 
 def writejson(fileset,fout):
     outf = open(os.path.expandvars(fout),"w")
@@ -108,5 +122,5 @@ def replaceFilepath(inputjson):
 #writejson(signals,"signals.json")
 #writejson(signals,"signals_skim.json")
 #writejson(signals_muon,"signals_muon.json")
-writejson(data_muon,"data_muon.json")
+writejson(signals_tau,"tau_signal_lepton_filter_rw.json")
 #replacejson("signals.json")
