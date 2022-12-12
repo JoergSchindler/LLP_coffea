@@ -393,8 +393,8 @@ class MyProcessor(processor.ProcessorABC):
  
     def selectDTcluster(self,dt_cluster,events):
         dt_jetVeto  = ~((dt_cluster.JetVetoPt>20.0) & (abs(dt_cluster.JetVetoEta)<3.0))
-        dt_muonVeto = ~( (dt_cluster.MuonVetoPt>10.0) & (dt_cluster.MuonVetoLooseId==True))
-        #dt_muonVeto = ~( (dt_cluster.MuonVetoPt>10.0) )
+        #dt_muonVeto = ~( (dt_cluster.MuonVetoPt>10.0) & (dt_cluster.MuonVetoLooseId==True))
+        dt_muonVeto = ~( (dt_cluster.MuonVetoPt>10.0) )
         dt_MB1veto  = (dt_cluster.nMB1<=1)
         dt_RPC      = (dt_cluster.nRPC>=1)
         dt_MB1adj   = (dt_cluster.nMB1_cosmic_minus<=8) & (dt_cluster.nMB1_cosmic_plus<=8)
@@ -515,13 +515,6 @@ class MyProcessor(processor.ProcessorABC):
 
         clusterMasks = self.selectCSCcluster(cluster,events) 
         dt_clusterMasks = self.selectDTcluster(dt_cluster,events) 
-        """
-        selected_muons = gParticle[(gParticle.Status==1) & (abs(gParticle.id)==13) & (abs(gParticle.MotherId)==15)]
-        selected_electrons = gParticle[(gParticle.Status==1) & (abs(gParticle.id)==11) & (abs(gParticle.MotherId)==15)]
-        """       
-        
-
-
 
         #dictionary of cutName:masks
         selectionMasks =   self.buildSelectionMasks(events,good_lep,cluster,clusterMasks,dt_cluster,dt_clusterMasks)
@@ -544,8 +537,8 @@ class MyProcessor(processor.ProcessorABC):
             "PreSel_dt"    :preselections,
             "ABCD_dt"      :preselections+["dt_cls_ABCD"],            
             "ABCD_dt_OOT"  :preselections+["dt_cls_OOT"],
-
-            #"JetMuStaVeto_dt" :preselections+["dt_JetMuStaVeto"],
+            "ABCD_dt_negMB1"       :preselections+["dt_cls_negMB1"],
+            "JetMuStaVeto_dt" :preselections+["dt_JetMuStaVeto"],
             ##"1cls"         :preselections+["n_cls"],            
             #"StatVeto"     :preselections+["cls_StatVeto"],
             #"ele_W_CR"     :['trigger_ele','MET',"METfilters",'good_electron',"W_CR",],
@@ -592,7 +585,6 @@ class MyProcessor(processor.ProcessorABC):
         output["gWPt_noweight"].fill(dataset=dataset,gWPt=events.gWPt)        
         output["nPU_noweight"].fill(dataset=dataset,nPU=events.npu)        
         if isSignal:
-            
             output['accept'].fill(dataset=dataset,
                                   gLLP_csc=ak.firsts(events.gLLP_csc),
                                   gLLP_dt=gLLP_dt,weight=weights.weight()) ## only 1 LLP
@@ -608,11 +600,9 @@ class MyProcessor(processor.ProcessorABC):
             output['gLLP_eta'].fill(dataset=dataset,region="gLLP_dt" ,gLLP_eta = ak.firsts(llp[cut].eta), weight=weights.weight()[cut])
             output['glepdPhi'].fill(dataset=dataset,region="gLLP_dt" ,gLLP_lepdPhi = np.abs(ak.flatten(events[cut].gLLP_lepdPhi)), weight=weights.weight()[cut])
             output["metXYCorr"].fill(dataset=dataset,region="gLLP_dt",metXYCorr=events[cut].metXYCorr,weight=weights.weight()[cut]) 
-            
-            #output["genMuon_pt"].fill(dataset=dataset  ,genLep_pt = ak.flatten(selected_muons.pt))
-            #output["genEle_pt"].fill(dataset=dataset  ,genLep_pt = ak.flatten(selected_electrons.pt))
+
             ## get CSC cluster masks
-            """cut = selectionMasks["Acceptance_csc_loose"] 
+            cut = selectionMasks["Acceptance_csc_loose"] 
 
             #Events with clusterID pass
             #llp_selection = maskAndFill(llp.e,ak.any(cluster[cut].llp_match,axis=1),len(llp.e[0])*[0])
@@ -622,14 +612,14 @@ class MyProcessor(processor.ProcessorABC):
             output['llp_cls_eff_z'].fill(dataset=dataset,selection=llp_selection[cut],z=ak.flatten(abs(llp.z[cut])),weight=weights.weight()[cut])
             output['llp_cls_eff_r'].fill(dataset=dataset,selection=llp_selection[cut],r=ak.flatten(llp.r[cut]),weight=weights.weight()[cut])
             output['llp_cls_eff_e'].fill(dataset=dataset,selection=llp_selection[cut],e=ak.flatten(llp.e[cut]),weight=weights.weight()[cut])
-            """
-         #   cut = selectionMasks["Acceptance_dt_loose"] 
-          #  llp_selection = ak.values_astype( ak.any(dt_cluster.llp_match,axis=1),np.int )
-           # output['llp_cls_dt_eff_z'].fill(dataset=dataset,selection=llp_selection[cut],z=ak.flatten(abs(llp.z[cut])),weight=weights.weight()[cut])
-           # output['llp_cls_dt_eff_r'].fill(dataset=dataset,selection=llp_selection[cut],r=ak.flatten(llp.r[cut]),weight=weights.weight()[cut])
-           # output['llp_cls_dt_eff_e'].fill(dataset=dataset,selection=llp_selection[cut],e=ak.flatten(llp.e[cut]),weight=weights.weight()[cut])
 
-       
+            cut = selectionMasks["Acceptance_dt_loose"] 
+            llp_selection = ak.values_astype( ak.any(dt_cluster.llp_match,axis=1),np.int )
+            output['llp_cls_dt_eff_z'].fill(dataset=dataset,selection=llp_selection[cut],z=ak.flatten(abs(llp.z[cut])),weight=weights.weight()[cut])
+            output['llp_cls_dt_eff_r'].fill(dataset=dataset,selection=llp_selection[cut],r=ak.flatten(llp.r[cut]),weight=weights.weight()[cut])
+            output['llp_cls_dt_eff_e'].fill(dataset=dataset,selection=llp_selection[cut],e=ak.flatten(llp.e[cut]),weight=weights.weight()[cut])
+
+
         output["metXYCorr"].fill(dataset=dataset,region="noselection",metXYCorr=events.metXYCorr,weight=weights.weight()) 
 
         for region in ["CleanLep","CleanLep_Tight"]:
@@ -924,7 +914,7 @@ class MyProcessor(processor.ProcessorABC):
                     print("File path can not be removed")
             else:
                 print("No events pass skim cut")
-        
+
         return output
 
     def postprocess(self, accumulator):
@@ -942,14 +932,6 @@ class MyProcessor(processor.ProcessorABC):
                 
             elif dataset in corrections.load_xsection().keys():
                 scale[dataset] = lumi*corrections.load_xsection()[dataset]/dataset_sumw
-                 
-                if self.isElectronChannel:
-                    if dataset+"_ele_channel" in corrections.load_taueff().keys():
-                        scale[dataset] = lumi*corrections.load_xsection()[dataset]*corrections.load_taueff()[dataset+"_ele_channel"]/dataset_sumw
-                else:
-                    if dataset+"_muon_channel" in corrections.load_taueff().keys():
-                        scale[dataset] = lumi*corrections.load_xsection()[dataset]*corrections.load_taueff()[dataset+"_muon_channel"]/dataset_sumw
-                
             else:
                 warnings.warn("Missing cross section for dataset %s.  No normalization applied. " % dataset, RuntimeWarning)
                 #scale[dataset] = lumi / dataset_sumw
