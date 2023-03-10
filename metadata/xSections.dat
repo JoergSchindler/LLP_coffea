@@ -77,6 +77,10 @@ HNL_tauTypeleptonFilter_mHNL7p0_pl10000              0.0001018
 HNL_tauTypeleptonFilter_mHNL10p0_pl100             0.001424
 HNL_tauTypeleptonFilter_mHNL10p0_pl1000             0.0001424
 HNL_tauTypeleptonFilter_mHNL10p0_pl10000             1.423e-05
+HNL_electronMuonMixedType_50-50_mHNL4p0_pl1000      0.01289
+HNL_EleTauMixedType_mHNL4p0_pl1000                  0.020715
+HNL_MuTauMixedType_mHNL4p0_pl1000                   0.020715
+
 
 # 13 TeV signals
 #https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBSMAt13TeV

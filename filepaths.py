@@ -83,15 +83,36 @@ signals_tau = {
      "HNL_tauTypeleptonFilter_mHNL1p0_pl1000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL1p0_pl1000/HeavyNeutralLepton_Tree.root"),
      "HNL_tauTypeleptonFilter_mHNL1p0_pl1000_rwctau2000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL1p0_pl1000/HeavyNeutralLepton_Tree.root"),
      "HNL_tauTypeleptonFilter_mHNL1p0_pl1000_rwctau5000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL1p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL1p0_pl1000_rwctau10000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL1p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL2p0_pl100_rwctau10" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL2p0_pl100/HeavyNeutralLepton_Tree.root"),
      "HNL_tauTypeleptonFilter_mHNL2p0_pl100" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL2p0_pl100/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL2p0_pl1000_rwctau300" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL2p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_tauTypeleptonFilter_mHNL2p0_pl1000_rwctau600" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL2p0_pl1000/HeavyNeutralLepton_Tree.root"),
      "HNL_tauTypeleptonFilter_mHNL2p0_pl1000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL2p0_pl1000/HeavyNeutralLepton_Tree.root"),
+      "HNL_tauTypeleptonFilter_mHNL2p0_pl1000_rwctau5000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL2p0_pl1000/HeavyNeutralLepton_Tree.root"),
      "HNL_tauTypeleptonFilter_mHNL4p0_pl100" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl100/HeavyNeutralLepton_Tree.root"),
      "HNL_tauTypeleptonFilter_mHNL4p0_pl1000" :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
      "HNL_tauTypeleptonFilter_mHNL4p0_pl1000_rwctau2000" :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
      "HNL_tauTypeleptonFilter_mHNL4p0_pl1000_rwctau5000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
+      "HNL_tauTypeleptonFilter_mHNL4p0_pl1000_rwctau10000" : glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),   
+     }
+
+mixing = {
+     "HNL_muonType_mHNL4p0_pl1000"   :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_muonType_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_electronType_mHNL4p0_pl1000"   :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_electronType_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_electronMuonMixedType_50-50_mHNL4p0_pl1000": glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_electronMuonMixedType_50-50_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     "HNL_EleTauMixedType_mHNL4p0_pl1000":  glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_EleTauMixedType_mHNL4p0_pl1000/HeavyNeutralLepton_Tree*.root"),
+     "HNL_MuTauMixedType_mHNL4p0_pl1000": glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_MuTauMixedType_mHNL4p0_pl1000/HeavyNeutralLepton_Tree*.root"), 
+     "HNL_tauTypeleptonFilter_mHNL4p0_pl1000" :glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim_Dec2/HNL_tauType_leptonFilter_mHNL4p0_pl1000/HeavyNeutralLepton_Tree.root"),
+     }
+
+Zmumu_study = {
+        "ZToMuMu_NNPDF31_13TeV-powheg_M_50_120": glob.glob("/eos/uscms/store/user/lpclonglived/HNL/RPC_study/ZToMuMu_NNPDF31_13TeV-powheg_M_50_120/HeavyNeutralLepton_Tree_*.root"),
+        "ZToMuMu_NNPDF31_13TeV-powheg_M_120_200":  glob.glob("/eos/uscms/store/user/lpclonglived/HNL/RPC_study/ZToMuMu_NNPDF31_13TeV-powheg_M_120_200/HeavyNeutralLepton_Tree_*.root"), 
+        "ZToMuMu_NNPDF31_13TeV-powheg_M_200_400": glob.glob("/eos/uscms/store/user/lpclonglived/HNL/RPC_study/ZToMuMu_NNPDF31_13TeV-powheg_M_200_400/HeavyNeutralLepton_Tree_*.root"), 
+        "ZToMuMu_NNPDF31_13TeV-powheg_M_400_800":glob.glob("/eos/uscms/store/user/lpclonglived/HNL/RPC_study/ZToMuMu_NNPDF31_13TeV-powheg_M_400_800/HeavyNeutralLepton_Tree_*.root"), 
+        "SingleMuon_2017": glob.glob("/eos/uscms/store/user/lpclonglived/HNL/skim/SingleMuon_2017*/HeavyNeutralLepton_Tree_*.root"),
         }
-
-
 
 def writejson(fileset,fout):
     outf = open(os.path.expandvars(fout),"w")
@@ -122,5 +143,6 @@ def replaceFilepath(inputjson):
 #writejson(signals,"signals.json")
 #writejson(signals,"signals_skim.json")
 #writejson(signals_muon,"signals_muon.json")
-writejson(signals_tau,"tau_signal_lepton_filter_rw.json")
+#writejson(Zmumu_study,"Zmumu_tnp_study.json")
+writejson(mixing,"mixed_23_02.json")
 #replacejson("signals.json")

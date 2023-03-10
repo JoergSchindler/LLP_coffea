@@ -6,10 +6,13 @@ import time
 from coffea.nanoevents import NanoEventsFactory, BaseSchema
 from HNLprocessor.HNLproc_4 import MyProcessor
 from HNLprocessor.TTbar_proc import ttbarProcessor
+from HNLprocessor.Zmumu_proc import ZmumuProcessor
 
 def runLocal(outf="test.pickle",fileset="test.json",isElectronChannel=True,**options):
     if options['ttbar']:
         p = ttbarProcessor(isElectronChannel,**options)
+    elif options['tnp']:
+        p = ZmumuProcessor(isElectronChannel,**options)
     else:
         p = MyProcessor(isElectronChannel,**options)
 
@@ -71,6 +74,9 @@ def runLPC(outf="test.pickle",fileset="test.json",isElectronChannel=True,**optio
     if options['ttbar']:
         #p = ttbarProcessor(isElectronChannel,is2017,runSys,saveSkim,debug)
         p = ttbarProcessor(isElectronChannel,**options)
+    elif options['tnp']:
+        p = ZmumuProcessor(isElectronChannel,**options)
+
     else:
         p = MyProcessor(isElectronChannel,**options)
 
@@ -114,6 +120,7 @@ if __name__ == '__main__':
     parser.add_option('--fileset', dest='fileset', default = "test.json", help='input file json')
     parser.add_option('--nJobs', dest='nJobs', default = 4, type=int, help='number of workers in condor')
     parser.add_option('-o', dest='outf', default='HNL_histograms.pickle', help='collection of histograms')
+    parser.add_option('--tnp', dest='tnp', action='store_true',default = False, help='Run tnp proc')
 
     (options, args) = parser.parse_args()
     outf    = options.outf 

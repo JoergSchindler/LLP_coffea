@@ -8,10 +8,10 @@ def add_prefix(cardfile,nuisances,prefix):
     fin = open(cardfile, "rt")
     fout = open(cardfile.replace(".txt","renamed.txt"), "wt")
     for line in fin:
-    	temp = line
-    	for nuisance in nuisances:
-    		temp=temp.replace(nuisance, prefix+nuisance)
-    	fout.write(temp)
+        temp = line
+        for nuisance in nuisances:
+            temp=temp.replace(nuisance, prefix+nuisance)
+        fout.write(temp)
     fin.close()
     fout.close()
     return
@@ -62,3 +62,4 @@ if __name__ == "__main__":
     os.system('rm {}'.format(dt_card.replace(".txt","renamed.txt")))
     os.system('rm {}'.format(csc_card.replace(".txt","renamed.txt")))
     os.system('rm temp_output.txt')
+

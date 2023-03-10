@@ -217,6 +217,7 @@ def writeYields(cut = None,muon=True,outf="yields.json",debug=True,shifts=None, 
         #bkg      = loadbkg("../HNL_histograms_Dec6_muons_noLooseID_data.pickle",True,cut,debug)
         #signals  = loadhist("../HNL_histograms_Dec6_muons_noLooseID_signals.pickle",True,cut,debug,lumi,
         #                    "../HNL_histograms_Dec6_muons_noLooseID_signals_2017.pickle" )
+
         #bkg      = loadbkg("../HNL_histograms_Dec14_muons_data.pickle",True,cut,debug,useOOT) ## v14
         bkg      = loadbkg("../HNL_histograms_Jan9_muons_data.pickle",True,cut,debug,useOOT) ## v19
         if tauSignals:
@@ -227,6 +228,11 @@ def writeYields(cut = None,muon=True,outf="yields.json",debug=True,shifts=None, 
             signals  = loadhist("../HNL_histograms_Jan9_muons_signals_2018.pickle",True,cut,debug,lumi,
                                 "../HNL_histograms_Jan9_muons_signals_2017.pickle" ,
                                 "../HNL_histograms_Jan9_muons_signals_2016.pickle" )
+
+
+
+
+
     else:
         lumi = 122
         #signals = loadSignalFromJson("./limitpoints_ele.json",False,cut,debug,lumi)
@@ -235,6 +241,7 @@ def writeYields(cut = None,muon=True,outf="yields.json",debug=True,shifts=None, 
         #bkg     = loadbkg("../HNL_histograms_Nov29_ele_all.pickle",False,cut,debug)
         #bkg     = loadbkg("../HNL_histograms_Dec6_ele_data.pickle",False,cut,debug)
         #signals = loadhist("../HNL_histograms_Dec6_ele_signals.pickle",False,cut,debug,lumi)
+
         #bkg     = loadbkg("../HNL_histograms_Dec6_ele_noLooseID_data.pickle",False,cut,debug)
         #signals = loadhist("../HNL_histograms_Dec6_ele_noLooseID_signals.pickle",False,cut,debug,lumi)
         #bkg     = loadbkg("../HNL_histograms_Dec14_ele_data.pickle",False,cut,debug,useOOT)
@@ -698,6 +705,20 @@ def makeAllcards(f_yield,outdir="./combine/HNL_datacards/",suffix="",test=False)
 import sys
 sys.path.insert(0,"../")
 
+
+#from HNLprocessor.util import f_1m   ## Move to util if possible
+def f_1m(x):
+    x0 = np.array([1,2,4,5,7,10])
+    y0 = np.array([49.06,1.539,0.02854 ,0.01019, 0.001018,0.0001424])    
+    return np.exp(np.poly1d(np.polyfit(x0,np.log(y0),5))(x))    
+    
+
+def f_xsec(m):
+    def xsec_m(x):
+        return f_1m(m)/(x/1000.)
+    return xsec_m 
+
+
 # Find the corresponding yield of (m,ct)-> (m,xx)
 def shift_ctau(N_yield,m_old,ct_old,m_new,forTauHNL=False):
     from HNLprocessor.util import f_1m,f_xsec, f_1m_tau,f_xsec_tau 
@@ -880,6 +901,7 @@ if __name__ == "__main__":
         isMuon=False
 
         f_yield = outdir+"yields.json"
+
         print("        yields = ", f_yield)
         if options.tauSignals:
             # shifts for tau HNLs
@@ -904,6 +926,24 @@ if __name__ == "__main__":
                 {"m_src":4.0,"m_target":3.4,"isTau":False},
                 {"m_src":4.0,"m_target":3.5,"isTau":False},
             ]                                       
+
+        #shifts = [
+        #    {"m_src":4.0,"m_target":3.0},
+        #    {"m_src":4.0,"m_target":3.1},
+        #    {"m_src":4.0,"m_target":3.2},
+        #    {"m_src":4.0,"m_target":3.5},
+        #]
+        shifts = [
+            {"m_src":1.0,"m_target":1.5},
+            {"m_src":4.0,"m_target":2.0},
+            {"m_src":4.0,"m_target":2.1},
+            {"m_src":4.0,"m_target":2.2},
+            {"m_src":4.0,"m_target":2.3},
+            {"m_src":4.0,"m_target":2.4},
+            {"m_src":4.0,"m_target":2.5},
+            {"m_src":4.0,"m_target":3.0},
+            ]
+
         if not options.muon:
             if options.writeYields: writeYields(cut,isMuon,f_yield,True,shifts,options.tauSignals,options.unblind,options.useOOT) 
             else:
@@ -937,6 +977,7 @@ if __name__ == "__main__":
         #########################################
         #outdir = "./combine/HNL_datacards/muon_v11/"   ### v11 , full run 2, looseeID, new timing 
         #cut = {"CSC":(200,2.8,None), "DT":(130,2.8,None)}
+
         #outdir = "./combine/HNL_datacards/muon_v12/"   ### v12 , full run 2,no looseID, new timing 
         #cut = {"CSC":(200,2.8,None), "DT":(130,2.8,None)}
         #outdir = "./combine/HNL_datacards/muon_v13/"   ### v13 , full run 2,no looseID, new timing, no mu pT cut for signal
@@ -964,6 +1005,10 @@ if __name__ == "__main__":
         #cut = {"CSC":(200,2.8,None), "DT":(150,2.8,None)}
         #outdir = "./combine/HNL_datacards/tau_v4/mu/"    ### v4 (as in v20), unblind 
         #cut = {"CSC":(200,2.8,None), "DT":(150,2.8,None)}
+
+
+
+
         isMuon=True
 
         f_yield = outdir+"yields.json"

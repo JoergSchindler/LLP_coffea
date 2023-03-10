@@ -285,24 +285,41 @@ def writeYields(cut = None,muon=True,outf="yields.json",debug=True,shifts=None, 
         if muon:
             lumi = 120
             bkg      = loadbkg(path_prefix+"HNL_histograms_Jan9_muons_data.pickle",True,cut,debug,useOOT) ## v19 
-            signals  = loadhist(path_prefix+"HNL_histograms_Mar3_muons_signals_2018.pickle",True,cut,debug,lumi,
-                                path_prefix+"HNL_histograms_Mar3_muons_signals_2017.pickle" ,
-                                path_prefix+"HNL_histograms_Mar3_muons_signals_2016.pickle" )
+            #signals  = loadhist(path_prefix+"HNL_histograms_Mar3_muons_signals_2018.pickle",True,cut,debug,lumi,
+            #                    path_prefix+"HNL_histograms_Mar3_muons_signals_2017.pickle" ,
+            #                    path_prefix+"HNL_histograms_Mar3_muons_signals_2016.pickle" )
 
-            signals_tau =  loadhist(path_prefix+"HNL_histograms_Mar3_tau_signals_mu_2018.pickle",True,cut,debug,lumi,
-                                path_prefix+"HNL_histograms_Mar3_tau_signals_mu_2017.pickle" ,
-                                path_prefix+"HNL_histograms_Mar3_tau_signals_mu_2016.pickle" )
+            #signals_tau =  loadhist(path_prefix+"HNL_histograms_Mar3_tau_signals_mu_2018.pickle",True,cut,debug,lumi,
+            #                    path_prefix+"HNL_histograms_Mar3_tau_signals_mu_2017.pickle" ,
+            #                    path_prefix+"HNL_histograms_Mar3_tau_signals_mu_2016.pickle" )
+            signals  = loadhist(path_prefix+"HNL_histograms_Jan9_muons_signals_2018.pickle",True,cut,debug,lumi,
+                                path_prefix+"HNL_histograms_Jan9_muons_signals_2017.pickle" ,
+                                path_prefix+"HNL_histograms_Jan9_muons_signals_2016.pickle" )
+            signals_tau  = loadhist(path_prefix+"HNL_histograms_Jan9_tau_signals_mu_2018.pickle",True,cut,debug,lumi,
+                                path_prefix+"HNL_histograms_Jan9_tau_signals_mu_2017.pickle" ,
+                                path_prefix+"HNL_histograms_Jan9_tau_signals_mu_2016.pickle" )
 
         else:
             lumi=122
             bkg     = loadbkg(path_prefix+"HNL_histograms_Jan4_ele_data.pickle",False,cut,debug,useOOT)
-            signals = loadhist( path_prefix+"HNL_histograms_Mar3_ele_signals_2018.pickle",False,cut,debug,lumi,
-                                path_prefix+"HNL_histograms_Mar3_ele_signals_2017.pickle",
-                                path_prefix+"HNL_histograms_Mar3_ele_signals_2016.pickle")
+            #signals = loadhist( path_prefix+"HNL_histograms_Mar3_ele_signals_2018.pickle",False,cut,debug,lumi,
+            #                    path_prefix+"HNL_histograms_Mar3_ele_signals_2017.pickle",
+            #                    path_prefix+"HNL_histograms_Mar3_ele_signals_2016.pickle")
 
-            signals_tau = loadhist(path_prefix+"HNL_histograms_Mar3_tau_signals_ele_2018.pickle",False,cut,debug,lumi,
-                               path_prefix+"HNL_histograms_Mar3_tau_signals_ele_2017.pickle",
-                               path_prefix+"HNL_histograms_Mar3_ele_signals_2016.pickle")
+            #signals_tau = loadhist(path_prefix+"HNL_histograms_Mar3_tau_signals_ele_2018.pickle",False,cut,debug,lumi,
+            #                   path_prefix+"HNL_histograms_Mar3_tau_signals_ele_2017.pickle",
+            #                   path_prefix+"HNL_histograms_Mar3_ele_signals_2016.pickle")
+
+           
+            signals = loadhist(path_prefix+"HNL_histograms_Jan4_tau_signals_ele_2018.pickle",False,cut,debug,lumi,
+                               path_prefix+"HNL_histograms_Jan4_tau_signals_ele_2017.pickle",
+                               path_prefix+"HNL_histograms_Jan4_ele_signals_2016.pickle")
+        
+            signals_tau = loadhist( path_prefix+"HNL_histograms_Jan4_ele_signals_2018.pickle",False,cut,debug,lumi,
+                                path_prefix+"HNL_histograms_Jan4_ele_signals_2017.pickle",
+                                path_prefix+"HNL_histograms_Jan4_ele_signals_2016.pickle")
+
+
 
         data = {}
         
@@ -318,8 +335,11 @@ def writeYields(cut = None,muon=True,outf="yields.json",debug=True,shifts=None, 
                     v['DT_MB2_unc'][-1]  =-1
                     v['DT_MB34_unc'][-1]  =-1
             data[k] = v
-        for signals in [signals,signals_tau]:
-            for k,v in signals.items(): data[k] = v
+        for signal in [signals,signals_tau]:
+            for k,v in signal.items(): data[k] = v
+        
+        for k,v in signals.items():
+            print(k)
 
         ## serialize np arrays for JSON
         for k,v in data.items():
@@ -689,7 +709,8 @@ def makeAllcards(f_yield,outdir="./combine/HNL_datacards/",suffix="",test=False)
             
         for name,signal in data.items():
             if "bkg" in name: continue
-            if not ("2p0" in name or "2p1" in name):  continue
+            #if not ("2p0" in name or "2p1" in name):  continue
+            if not ("pl1000" in name): continue
             if suffix:
                 name = name+suffix
             norm = 1
@@ -787,16 +808,6 @@ def writeDiracYields(f_yield):
 def writeMixingYields(data,muon,f_yield):
     mixing = {}
     mixing_points = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
-    problem_points = [
-        (0.1,0.2,0.7),
-        (0.1,0.3,0.6),
-        (0.1,0.6,0.3),
-        (0.1,0.7,0.2),
-        (0.2,0.7,0.1),
-        (0.3,0.6,0.1),
-        (0.6,0.3,0.1),
-        (0.7,0.2,0.1),
-        ]
     for fe in mixing_points:
         
         for fmu in mixing_points:
@@ -807,10 +818,10 @@ def writeMixingYields(data,muon,f_yield):
                
                 sum_of_floats = fe+fmu+ftau
                 sum_of_floats = round(sum_of_floats,1)
-                print(fe+fmu+ftau) 
+                
                 if sum_of_floats!=1: continue
-                print((fe,fmu,ftau))
-                if (fe,fmu,ftau) not in problem_points: continue         
+                
+               
                 for name,signal in data.items():
                         #if "mHNL2p0" not in name: continue
                         if "bkg" in name:
@@ -877,6 +888,7 @@ def writeMixingYields(data,muon,f_yield):
         with open(f_yield.replace(".json","_mixed.json"),'w') as f:
             f.write(json.dumps(mixing,indent=4))
             print("Wrote out: ",f_yield.replace(".json","_mixed.json"))
+    writeDiracYields(f_yield.replace(".json","_mixed.json"))
     return
 
 # shift yielsd in f_yield.json according to shifts[{"m_src":int,"m_target":int}]
@@ -1024,7 +1036,7 @@ if __name__ == "__main__":
         #cut = {"CSC":(200,2.8,None), "DT":(150,2.8,None)}
         #outdir = "./combine/HNL_datacards/ele_v13/"   ###  v13, 150DT cut (Jan4 pickles) ABCD, CSC,DT cls SF 
         #cut = {"CSC":(200,2.8,None), "DT":(150,2.8,None)}
-        outdir = "./combine/HNL_datacards/ele_v16_new_pickle_testing/"   ###  v14, 150DT cut (Jan4 pickles) ABCD, unblind 
+        outdir = "./combine/HNL_datacards/ele_v17/"   ###  v14, 150DT cut (Jan4 pickles) ABCD, unblind 
         cut = {"CSC":(200,2.8,None), "DT":(150,2.8,None)}
         #########################################
         #outdir = "./combine/HNL_datacards/tau_v2/ele/"   ### tau v2: 150 DT, real ABC
@@ -1110,7 +1122,7 @@ if __name__ == "__main__":
         #cut = {"CSC":(200,2.8,None), "DT":(150,2.8,None)}
         #outdir = "./combine/HNL_datacards/muon_v19/"   ### v19 , as in v17, (Jan9 signal), ABCD, split MB2,MB34, apply CSC,DT_cls_SF 
         #cut = {"CSC":(200,2.8,None), "DT":(150,2.8,None)}
-        outdir = "./combine/HNL_datacards/muon_v22_new_pickle_testing/"   ### v20 , as in v19, (Jan9 signal), unblind 
+        outdir = "./combine/HNL_datacards/muon_v23/"   ### v20 , as in v19, (Jan9 signal), unblind 
         cut = {"CSC":(200,2.8,None), "DT":(150,2.8,None)}
         #########################################
         #outdir = "./combine/HNL_datacards/tau_v1/mu/"   ### v1 

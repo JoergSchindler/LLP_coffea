@@ -61,6 +61,7 @@ def add_nCluster_weight(weights,name, n_cluster, cls_eff_ratio=1):
 def load_xsection():
     return compiled['xsections']
 
+
 def load_taueff():
     return compiled["tau_eff"]
 
