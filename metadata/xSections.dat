@@ -2,6 +2,7 @@
 ## Cross section in pb for datasets
 ##
 HNL_testpoint1									1.724e-05
+
 HNL_electronType_mHNL1p0_pl10                   1357.000
 HNL_electronType_mHNL1p0_pl100                  135.7000
 HNL_electronType_mHNL1p0_pl1000                 13.57
@@ -76,8 +77,6 @@ HNL_tauTypeleptonFilter_mHNL7p0_pl10000              0.0001018
 HNL_tauTypeleptonFilter_mHNL10p0_pl100             0.001424
 HNL_tauTypeleptonFilter_mHNL10p0_pl1000             0.0001424
 HNL_tauTypeleptonFilter_mHNL10p0_pl10000             1.423e-05
-
-
 
 # 13 TeV signals
 #https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBSMAt13TeV

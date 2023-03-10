@@ -82,9 +82,8 @@ class MyProcessor(processor.ProcessorABC):
     ----------
     isElectronChannel : bool (default is True)
         If true, make electron channel selections; else make muon channel selections;
-    is2017 : bool (default is False)
-        If ture, make 2017 pT cut for muon channel. Only matters for signals in muon channel. 
-        Same is done for data is done by convention of dataset name.
+    year : str (default is "2018")
+        Switches for trigger decisions and prompt lepton pT
     runSys : bool (default is False)
         Run systematic variations of signals
     forLimit : bool (default is False)
@@ -96,14 +95,14 @@ class MyProcessor(processor.ProcessorABC):
     
     """
     def __init__(self,isElectronChannel=True,**options):
-        defaultOptions = { 'debug': False, 'saveSkim': False, 'runSys':False,"is2017":False}
+        defaultOptions = { 'debug': False, 'saveSkim': False, 'runSys':False,"year":"2018","forLimit":False}
         options = { **defaultOptions, **options }
         self._debug = options['debug']
         self._saveSkim = options['saveSkim']
         self.isElectronChannel = isElectronChannel
         self.isMuonChannel = not(isElectronChannel)
         self.llp = None
-        self._is2017 = options['is2017']
+        self._year = options['year']
         self._runSys = options['runSys']
         self._forLimit = options['forLimit']
         ##define histograms 
@@ -141,8 +140,15 @@ class MyProcessor(processor.ProcessorABC):
             
         ele   = lep[abs(lep.pdgid)==11]
         muons = lep[abs(lep.pdgid)==13]
-        good_ele = ele[(ele.pt>35) & (abs(ele.eta)<2.4) & (ele.passId)]
-        if self._is2017:
+        if self._year=="2016":
+            good_ele = ele[(ele.pt>30) & (abs(ele.eta)<2.5) & (ele.passId)]
+        elif self._year =="2017":
+            good_ele = ele[(ele.pt>35) & (abs(ele.eta)<2.5) & (ele.passId)]
+        elif self._year =="2018":
+            #good_ele = ele[(ele.pt>32) & (abs(ele.eta)<2.5) & (ele.passId)]
+            good_ele = ele[(ele.pt>35) & (abs(ele.eta)<2.5) & (ele.passId)]
+            
+        if self._year=="2017":
             good_mu  = muons[(muons.pt>28)&(abs(muons.eta)<2.4) & (muons.passId)]   ## use pT>28 GeV for 2017
         else:
             good_mu  = muons[(muons.pt>25)&(abs(muons.eta)<2.4) & (muons.passId)] 
@@ -428,6 +434,67 @@ class MyProcessor(processor.ProcessorABC):
         })
         return clusterMasks
     
+    def buildHLTdecision(self,events):
+        hlt = events.HLTDecision    
+        ## from trigger_names_llp_v3
+        bitmap = {
+             "HLT_Ele27_WPTight_Gsf"                  :   79,  
+             "HLT_Ele32_WPTight_Gsf"                  :   87, 
+             "HLT_Ele35_WPTight_Gsf"                  :  625,
+             "HLT_Ele115_CaloIdVT_GsfTrkIdT"          :  521,
+             "HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165"  :  516,
+             "HLT_Photon175"                          :  409,
+             "HLT_Photon200"                          :  775,
+             ## Muon triggers                                                      
+             "HLT_IsoMu24"                            :  135,
+             "HLT_IsoTkMu24"                          :  141,
+             "HLT_IsoMu27"                            :  136,
+             "HLT_Mu50"                               :  196,
+             "HLT_OldMu100"                           :  663,
+             "HLT_TkMu100"                            :  664,
+             "HLT_TkMu50"                             :  197,
+        }
+        hlt_result = ak.Array([False]*len(hlt))
+        if self.isElectronChannel:
+            if self._year=="2016":
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Ele27_WPTight_Gsf"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Ele115_CaloIdVT_GsfTrkIdT"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Photon175"]])
+            elif self._year=="2017":
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Ele35_WPTight_Gsf"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Ele115_CaloIdVT_GsfTrkIdT"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Photon200"]])
+            elif self._year=="2018":
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Ele32_WPTight_Gsf"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Ele115_CaloIdVT_GsfTrkIdT"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Photon200"]])
+            else:
+                warnings.warn(" Invalid year is selected. No HLT decision is selected"  )
+                return np.ones(len(events))
+        else:
+            if self._year=="2016":
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_IsoMu24"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_IsoTkMu24"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Mu50"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_TkMu50"]])
+            elif self._year=="2017":
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_IsoMu27" ]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Mu50"    ]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_OldMu100"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_TkMu100" ]])
+            elif self._year=="2018":
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_IsoMu24" ]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_Mu50"    ]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_OldMu100"]])
+                hlt_result = (hlt_result) | (hlt[:,bitmap["HLT_TkMu100" ]])
+            else:
+                warnings.warn(" Invalid year is selected. No HLT decision is selected"  )
+                return np.ones(len(events))
+        if self._debug:
+            print(" HLT pass = ", ak.sum(hlt_result))
+        return hlt_result
+
+        
     def buildSelectionMasks(self,events,good_lep,cluster,clusterMasks,dt_cluster,dt_clusterMasks):
         selectionMasks =   {}
 
@@ -438,8 +505,10 @@ class MyProcessor(processor.ProcessorABC):
         selectionMasks['Acceptance_csc_tight']=ak.firsts(self.llp.csc_tight)==1
         selectionMasks['Acceptance_dt_tight']=ak.firsts(self.llp.dt_tight)==1
         selectionMasks['METfilters']   =events.Flag2_all==True
-        selectionMasks['trigger_ele']  =events.SingleEleTrigger==True
-        selectionMasks['trigger_mu']   =events.SingleMuonTrigger==True
+        #selectionMasks['trigger_ele']  =events.SingleEleTrigger==True
+        #selectionMasks['trigger_mu']   =events.SingleMuonTrigger==True
+        selectionMasks['trigger_ele']  = self.buildHLTdecision(events)
+        selectionMasks['trigger_mu']   = self.buildHLTdecision(events)
         selectionMasks['good_lepton']  =ak.num(good_lep,axis=1)==1
         selectionMasks['MET']          =events.metEENoise>=30
         selectionMasks['n_cls']        =ak.num(cluster,axis=1)>=1
@@ -496,7 +565,7 @@ class MyProcessor(processor.ProcessorABC):
             elif "_2018" in dataset: year = "2018" 
             else:
                 warnings.warn(" %s does not contain one of the strings: [_2016,_2017,_2018]. No golden json mask applied." % dataset, RuntimeWarning)
-            self._is2017 = True if year=="2017" else False
+            self._year = year 
             if year is not None:           
                 events = events[lumiMasks[year](events.runNum,events.lumiSec)]
         output["sumw"][dataset] += len(events)
@@ -556,9 +625,9 @@ class MyProcessor(processor.ProcessorABC):
             corrections.add_pileup_weight(weights, events.npu,'2018')
             corrections.add_Wpt_kfactor(weights, events.gWPt, dataset)
             if self.isElectronChannel:
-                corrections.add_electronSFs(weights, ak.firsts(ele)) 
+                corrections.add_electronSFs(weights, ak.firsts(ele),self._year) 
             else:
-                corrections.add_muonSFs(weights, ak.firsts(muons))       
+                corrections.add_muonSFs(weights, ak.firsts(muons),self._year)       
             
             if isSignal and "rwctau" in dataset:
                 ## expect dataset = "HNL_*_pl{ctau_old}_rwctau{ctau_new}"
@@ -571,6 +640,67 @@ class MyProcessor(processor.ProcessorABC):
             print(dataset)
             print("Weight statistics: %r" % weights.weightStatistics) 
             print("Weight variations: " , weights.variations) 
+            print("Weight nominal: " , np.mean(weights.weight())) 
+
+        if self._saveSkim:
+            #cut = ak.any(buildMask(selectionMasks,regions["ABCD"]),axis=1)
+            #cut = selectionMasks["Acceptance_csc"]
+            #fout["MuonSystem"] = {"cluster":cluster[cut],"gParticle":gParticle[cut],"llp":llp[cut],'lep':good_lep[cut]}
+            #fout["MuonSystem"] = {"cluster":cluster[cut],"gParticle":gParticle[cut],'lep':good_lep[cut]}
+            #fout["MuonSystem"] = {"cluster":cluster[:20],"gParticle":gParticle[:20]}
+            #fout.close()
+            if self.isElectronChannel: channel ="ele_"
+            else: channel ="muon_"
+            filename = dataset + "_skim_"+channel + str(time.time()) + ".root"
+            destination = "root://cmseos.fnal.gov//store/user/kkwok/llp/HNL/skim/skim_dec22/"
+
+            cls_inTime_CR = (p & ak.any(
+                                (selectionMasks['cls_ABCD'] |selectionMasks['cls_OOT']) &
+                               (cluster.size>200) &
+                               (abs(cluster.dphi_cluster_MET)>=0.7),axis=1)
+                            )
+            dt_cls_inTime_D = (p & ak.any((selectionMasks['dt_cls_ABCD']) &
+                               (dt_cluster.size>150) & (dt_cluster.size<180) &
+                               (abs(dt_cluster.dphi_cluster_lep)>2.8),axis=1)
+                            )
+            cut = (dt_cls_inTime_D)
+
+            #cut = ak.num(cluster,axis=1)>=1 ## skim testing cut
+            if ak.any(cut):
+                print("Found events pass skim cut, writing out")
+                with uproot.recreate(filename) as fout:
+                    #cluster['passABCD'] =  buildMask(selectionMasks,regions["ABCD"])
+                    #dt_cluster['passABCD_dt'] =  buildMask(selectionMasks,regions["ABCD_dt"])
+                    fout["MuonSystem"] = uproot_writeable(events[cut], events.fields)    # TODO: find out why we can't write all event fields
+                    #fout["MuonSystem"] = {"cluster":cluster[cut],"dt_cluster":dt_cluster[cut],"gParticle":gParticle[cut]}
+                    #fout["MuonSystem"] = {"runNum":events.runNum[cut],"lumiSec":events.lumiSec[cut],"evtNum":events.evtNum[cut],
+                    #                      "nDtRings":events.nDtRings,"
+                    #                        "cluster":cluster[cut],"dt_cluster":dt_cluster[cut]}
+            
+                copyproc = XRootD.client.CopyProcess()
+                copyproc.add_job(source = os.path.abspath(os.path.join(".", filename)),
+                                 target = (destination + f"/{filename}"), force=True)
+                copyproc.prepare()
+                print("Copying skim output to  ...",destination )
+                copyproc.run()
+                client = XRootD.client.FileSystem("root://cmseos.fnal.gov/")
+                status = client.locate(
+                    "/store/user/kkwok/llp/HNL/skim/"+filename,
+                    XRootD.client.flags.OpenFlags.READ,
+                )
+                assert status[0].ok
+                del client
+                del copyproc
+                
+                try:
+                    os.remove(os.path.abspath(os.path.join(".", filename)))
+                    print("% s removed successfully" % os.path.abspath(os.path.join(".", filename)))
+                except OSError as error:
+                    print(error)
+                    print("File path can not be removed")
+            else:
+                print("No events pass skim cut")
+            return output
 
         if self._forLimit:
             cutnames = regions["ABCD"]
@@ -592,6 +722,49 @@ class MyProcessor(processor.ProcessorABC):
                                             dphi_MET=np.abs(ak.flatten(dt_cluster[cut].dphi_cluster_MET)),
                                             weight=ak.flatten(w_cls))
             return output
+
+        if not isData and self._runSys:
+            ## CSC systematics
+
+            def fillsys(h,sys_name,cls,cut,weights,isPartial=False):
+                ## arrays to be filled
+                nhit = ak.flatten(cls[cut].size)
+                dphi_lep =np.abs(ak.flatten(cls[cut].dphi_cluster_lep))
+                if sys_name=="nominal":
+                    ## fill nominal
+                    w_cls = ak.flatten((weights.weight() * ak.ones_like(cls.size))[cut]) 
+                    h.fill(dataset=dataset,syst=sys_name,ClusterSize=nhit,dphi_lep=dphi_lep,weight=w_cls)
+                elif isPartial:
+                    ## Partial weight (i.e. all sys but exclude sys_name)
+                    w_cls = ak.flatten((weights.partial_weight(exclude=[sys_name]) * ak.ones_like(cls.size))[cut])
+                    h.fill(dataset=dataset,syst="no"+sys_name,ClusterSize=nhit,dphi_lep=dphi_lep,weight=w_cls)
+                else:
+                    ## Varied weight (i.e. all sys but varies sys_name)
+                    w_cls = ak.flatten((weights.weight(sys_name) * ak.ones_like(cls.size))[cut])
+                    h.fill(dataset=dataset,syst=sys_name,ClusterSize=nhit,dphi_lep=dphi_lep,weight=w_cls)
+
+            year = self._year
+            if self.isElectronChannel:
+                systematics = ["Wpt","electron_ID_SF_value","electron_trigger_SF_value"]
+            else:
+                systematics = ["Wpt",f"muon_ID_{year}_value",f"muon_ISO_{year}_value",f"muon_trigger_{year}_value"]
+                        
+            cut      = buildMask(selectionMasks,regions["ABCD"])
+            cut_dt   = buildMask(selectionMasks,regions["ABCD_dt"])
+            ## Nominal 
+            fillsys(output['dphi_cluster_syst']   ,"nominal",    cluster,cut   ,weights)
+            fillsys(output['dphi_cluster_dt_syst'],"nominal", dt_cluster,cut_dt,weights)
+            ## Exclude Wpt to see the effect of WpT reweighting
+            fillsys(output['dphi_cluster_syst']   ,"Wpt",    cluster,cut   ,weights,isPartial=True)
+            fillsys(output['dphi_cluster_dt_syst'],"Wpt", dt_cluster,cut_dt,weights,isPartial=True)
+            ## Vaiations 
+            for sys in systematics:
+                for suffix in ["Up","Down"]:
+                    sys_name = sys+suffix
+                    fillsys(output['dphi_cluster_syst']   ,sys_name,    cluster,cut   ,weights)
+                    fillsys(output['dphi_cluster_dt_syst'],sys_name, dt_cluster,cut_dt,weights)
+            return output
+
             
         ## Fill no selection plots
         output['nLeptons'].fill(dataset=dataset, nLeptons = events.nLeptons, weight=weights.weight())
@@ -778,77 +951,6 @@ class MyProcessor(processor.ProcessorABC):
                 output["ClusterMuonVetoPt_dt"].fill(dataset=dataset,region=region,
                                            ClusterMuonVetoPt=ak.flatten(dt_cluster[cut].MuonVetoPt),
                                            weight=ak.flatten(w_cls))       
-        if not isData and self._runSys:
-            ## CSC systematics
-            cut      = buildMask(selectionMasks,regions["ABCD"])
-            nhit     = ak.flatten(cluster[cut].size)
-            dphi_lep =np.abs(ak.flatten(cluster[cut].dphi_cluster_lep))
-            
-            w_cls = ak.flatten((weights.partial_weight(exclude=["Wpt"]) * ak.ones_like(cluster.size))[cut])
-            output['dphi_cluster_syst'].fill(dataset=dataset,syst="noWpt",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            w_cls = ak.flatten((weights.weight() * ak.ones_like(cluster.size))[cut])
-            output['dphi_cluster_syst'].fill(dataset=dataset,syst="nominal",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            w_cls = ak.flatten((weights.weight("WptUp") * ak.ones_like(cluster.size))[cut])
-            output['dphi_cluster_syst'].fill(dataset=dataset,syst="WptUp",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            w_cls = ak.flatten((weights.weight("WptDown") * ak.ones_like(cluster.size))[cut])
-            output['dphi_cluster_syst'].fill(dataset=dataset,syst="WptDown",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            
-            if self.isElectronChannel:
-                w_cls = ak.flatten((weights.weight("electron_SF_2018_value") * ak.ones_like(cluster.size))[cut])
-                output['dphi_cluster_syst'].fill(dataset=dataset,syst="electron_SF_2018_value",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                w_cls = ak.flatten((weights.weight("electron_SF_2018_value") * ak.ones_like(cluster.size))[cut])
-                output['dphi_cluster_syst'].fill(dataset=dataset,syst="electron_SF_2018_value",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-
-            else: 
-                w_cls = ak.flatten((weights.weight("muon_ID_2018_valueDown") * ak.ones_like(cluster.size))[cut])
-                output['dphi_cluster_syst'].fill(dataset=dataset,syst="muon_ID_2018_valueDown",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                w_cls = ak.flatten((weights.weight("muon_ID_2018_valueUp") * ak.ones_like(cluster.size))[cut])
-                output['dphi_cluster_syst'].fill(dataset=dataset,syst="muon_ID_2018_valueUp",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                
-                w_cls = ak.flatten((weights.weight("muon_ISO_2018_valueDown") * ak.ones_like(cluster.size))[cut])
-                output['dphi_cluster_syst'].fill(dataset=dataset,syst="muon_ISO_2018_valueDown",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                w_cls = ak.flatten((weights.weight("muon_ISO_2018_valueUp") * ak.ones_like(cluster.size))[cut])
-                output['dphi_cluster_syst'].fill(dataset=dataset,syst="muon_ISO_2018_valueUp",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            
-                w_cls = ak.flatten((weights.weight("muon_trigger_2018_valueDown") * ak.ones_like(cluster.size))[cut])
-                output['dphi_cluster_syst'].fill(dataset=dataset,syst="muon_trigger_2018_valueDown",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                w_cls = ak.flatten((weights.weight("muon_trigger_2018_valueUp") * ak.ones_like(cluster.size))[cut])
-                output['dphi_cluster_syst'].fill(dataset=dataset,syst="muon_trigger_2018_valueUp",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                
-            ## DT systematics
-            cut      = buildMask(selectionMasks,regions["ABCD_dt"])
-            nhit     = ak.flatten(dt_cluster[cut].size)
-            dphi_lep =np.abs(ak.flatten(dt_cluster[cut].dphi_cluster_lep))
-            
-            w_cls = ak.flatten((weights.partial_weight(exclude=["Wpt"]) * ak.ones_like(dt_cluster.size))[cut])
-            output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="noWpt",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            w_cls = ak.flatten((weights.weight() * ak.ones_like(dt_cluster.size))[cut])
-            output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="nominal",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            w_cls = ak.flatten((weights.weight("WptUp") * ak.ones_like(dt_cluster.size))[cut])
-            output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="WptUp",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            w_cls = ak.flatten((weights.weight("WptDown") * ak.ones_like(dt_cluster.size))[cut])
-            output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="WptDown",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-            if self.isElectronChannel:
-                w_cls = ak.flatten((weights.weight("electron_SF_2018_value") * ak.ones_like(dt_cluster.size))[cut])
-                output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="electron_SF_2018_value",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                w_cls = ak.flatten((weights.weight("electron_SF_2018_value") * ak.ones_like(dt_cluster.size))[cut])
-                output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="electron_SF_2018_value",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-
-            else:
-                w_cls = ak.flatten((weights.weight("muon_ID_2018_valueDown") * ak.ones_like(dt_cluster.size))[cut])
-                output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="muon_ID_2018_valueDown",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                w_cls = ak.flatten((weights.weight("muon_ID_2018_valueUp") * ak.ones_like(dt_cluster.size))[cut])
-                output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="muon_ID_2018_valueUp",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-
-                w_cls = ak.flatten((weights.weight("muon_ISO_2018_valueDown") * ak.ones_like(dt_cluster.size))[cut])
-                output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="muon_ISO_2018_valueDown",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                w_cls = ak.flatten((weights.weight("muon_ISO_2018_valueUp") * ak.ones_like(dt_cluster.size))[cut])
-                output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="muon_ISO_2018_valueUp",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-
-                w_cls = ak.flatten((weights.weight("muon_trigger_2018_valueDown") * ak.ones_like(dt_cluster.size))[cut])
-                output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="muon_trigger_2018_valueDown",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
-                w_cls = ak.flatten((weights.weight("muon_trigger_2018_valueUp") * ak.ones_like(dt_cluster.size))[cut])
-                output['dphi_cluster_dt_syst'].fill(dataset=dataset,syst="muon_trigger_2018_valueUp",ClusterSize=nhit,dphi_lep=dphi_lep, weight=w_cls)
            
  
         ## fill cutflow plots:
@@ -878,66 +980,6 @@ class MyProcessor(processor.ProcessorABC):
             allcuts= ak.any( (buildMask(dt_clusterMasks,DT_sel_ABCD[0:i+1]) & allPreSel_dt), axis=1)     ## select all cuts up to this cut
             output['cutflow'].fill(dataset=dataset,region="dt_cutflow",cutflow=sel,weight=weights.weight()[allcuts])
 
-        if self._saveSkim:
-            #cut = ak.any(buildMask(selectionMasks,regions["ABCD"]),axis=1)
-            #cut = selectionMasks["Acceptance_csc"]
-            #fout["MuonSystem"] = {"cluster":cluster[cut],"gParticle":gParticle[cut],"llp":llp[cut],'lep':good_lep[cut]}
-            #fout["MuonSystem"] = {"cluster":cluster[cut],"gParticle":gParticle[cut],'lep':good_lep[cut]}
-            #fout["MuonSystem"] = {"cluster":cluster[:20],"gParticle":gParticle[:20]}
-            #fout.close()
-            if self.isElectronChannel: channel ="ele_"
-            else: channel ="muon_"
-            filename = dataset + "_skim_"+channel + str(time.time()) + ".root"
-            destination = "root://cmseos.fnal.gov//store/user/kkwok/llp/HNL/skim/"
-
-
-            cls_inTime_CR = (p & ak.any(
-                                (selectionMasks['cls_ABCD'] |selectionMasks['cls_OOT']) &
-                               (cluster.size>200) &
-                               (abs(cluster.dphi_cluster_MET)>=0.7),axis=1)
-                            )
-            dt_cls_inTime_CR = (p & ak.any(
-                                (selectionMasks['dt_cls_ABCD'] |selectionMasks['dt_cls_OOT']) &
-                               (dt_cluster.size>200) &
-                               (abs(dt_cluster.dphi_cluster_MET)>0.7),axis=1)
-                            )
-            cut = (cls_inTime_CR)|(dt_cls_inTime_CR)
-
-            #cut = ak.num(cluster,axis=1)>=1 ## skim testing cut
-            if ak.any(cut):
-                print("Found events pass skim cut, writing out")
-                with uproot.recreate(filename) as fout:
-                    #cluster['passABCD'] =  buildMask(selectionMasks,regions["ABCD"])
-                    #dt_cluster['passABCD_dt'] =  buildMask(selectionMasks,regions["ABCD_dt"])
-                    fout["MuonSystem"] = uproot_writeable(events[cut], events.fields)    # TODO: find out why we can't write all event fields
-                    #fout["MuonSystem"] = {"cluster":cluster[cut],"dt_cluster":dt_cluster[cut],"gParticle":gParticle[cut]}
-                    #fout["MuonSystem"] = {"runNum":events.runNum[cut],"lumiSec":events.lumiSec[cut],"evtNum":events.evtNum[cut],
-                    #                      "nDtRings":events.nDtRings,"
-                    #                        "cluster":cluster[cut],"dt_cluster":dt_cluster[cut]}
-            
-                copyproc = XRootD.client.CopyProcess()
-                copyproc.add_job(source = os.path.abspath(os.path.join(".", filename)),
-                                 target = (destination + f"/{filename}"), force=True)
-                copyproc.prepare()
-                print("Copying skim output to  ...",destination )
-                copyproc.run()
-                client = XRootD.client.FileSystem("root://cmseos.fnal.gov/")
-                status = client.locate(
-                    "/store/user/kkwok/llp/HNL/skim/"+filename,
-                    XRootD.client.flags.OpenFlags.READ,
-                )
-                assert status[0].ok
-                del client
-                del copyproc
-                
-                try:
-                    os.remove(os.path.abspath(os.path.join(".", filename)))
-                    print("% s removed successfully" % os.path.abspath(os.path.join(".", filename)))
-                except OSError as error:
-                    print(error)
-                    print("File path can not be removed")
-            else:
-                print("No events pass skim cut")
 
         return output
 
@@ -949,21 +991,32 @@ class MyProcessor(processor.ProcessorABC):
         for dataset, dataset_sumw in accumulator['sumw'].items():
             if "rwctau" in dataset:
                 ctau    = float(dataset.split("_")[-1].replace("rwctau",""))
-                mass    = dataset.split("_")[2].replace("mHNL","")
-                xsec    = corrections.reweightXsec(ctau,mass)
-                #print("reweighting ct for ",dataset," with xsec = ",xsec)
+                mass    = float(dataset.split("_")[2].replace("mHNL","").replace("p","."))
+                if "tau" in dataset:
+                    src_sample       = "_".join(dataset.split("_")[:-1])
+                    src_ctau         = float(src_sample.split("_")[-1].replace("pl","")) 
+                    src_xsecTimeseff = corrections.load_xsection()[src_sample]  ## with eff
+                    src_xsec         = corrections.reweightXsec(src_ctau,mass,True)
+                    filter_eff       =  src_xsecTimeseff/src_xsec
+                    xsec             = corrections.reweightXsec(ctau,mass,True)*filter_eff
+                else:
+                    xsec    = corrections.reweightXsec(ctau,mass)
+                if self._debug:
+                    print("reweighting ct for ",dataset," with xsec = ",xsec)
                 scale[dataset] = lumi*xsec/dataset_sumw
                 
             elif dataset in corrections.load_xsection().keys():
                 scale[dataset] = lumi*corrections.load_xsection()[dataset]/dataset_sumw
+                if self._debug:
+                    print(" dataset =",dataset,"  xsec = ",corrections.load_xsection()[dataset])
             else:
                 warnings.warn("Missing cross section for dataset %s.  No normalization applied. " % dataset, RuntimeWarning)
                 #scale[dataset] = lumi / dataset_sumw
 
+        if self._debug:
+            print("Scaling with scale = " , scale)
         for h in accumulator.values():
             if isinstance(h, hist.Hist):
-                if self._debug:
-                        print("Scaling with scale = " , scale)
                 h.scale(scale, axis="dataset")
 
         return accumulator
